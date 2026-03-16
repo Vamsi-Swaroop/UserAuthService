@@ -52,4 +52,8 @@ public class User extends BaseModel {
     public void setRoles(List<Role> roles) {
         roles=this.roles;
     }
+
+    public List<Role> getRoles() {
+        return roles;
+    }
 }
