@@ -1,6 +1,8 @@
 package dev.ismav.userauthservice.serivce;
 import dev.ismav.userauthservice.pojos.UserToken;
 import dev.ismav.userauthservice.repos.SessionRepo;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtParser;
 import org.springframework.data.util.Pair;
 
 import dev.ismav.userauthservice.Exceptions.UserAlreadyExistException;
@@ -29,12 +31,14 @@ public class AuthService implements IAuthService{
     @Autowired
     private RoleRepo roleRepo;
 
-    @
-    Autowired
+    @Autowired
     private SessionRepo sessionRepo;
 
     @Autowired
     private BCryptPasswordEncoder bCryptPasswordEncoder;
+
+    @Autowired
+    private SecretKey secretKey;
 
     //BCryptpasswordEncoder encode() adds random salt and cost factor to the password
     /*
@@ -101,7 +105,7 @@ public class AuthService implements IAuthService{
             HashMap<String,Object> payload = new HashMap<>();
             Long nowInMillis = System.currentTimeMillis();
             payload.put("iat",nowInMillis);
-            payload.put("exp", nowInMillis+10000);
+            payload.put("exp", nowInMillis+600000);
             payload.put("userId", userOptional.get().getId());
             payload.put("iss","god");
             payload.put("scope", user.getRoles());
@@ -109,8 +113,8 @@ public class AuthService implements IAuthService{
             /*till here payload is generated
 
              */
-            MacAlgorithm algorithm = Jwts.SIG.HS256;
-            SecretKey secretKey = algorithm.key().build();
+//            MacAlgorithm algorithm = Jwts.SIG.HS256;
+//            SecretKey secretKey = algorithm.key().build();
             String token = Jwts.builder().claims(payload).
                             signWith(secretKey).compact();
             /*
@@ -129,6 +133,45 @@ public class AuthService implements IAuthService{
         }
         else{
             throw new IncorrectPasswordException("Password is incorrect");
+        }
+    }
+    @Override
+    public boolean validateToken(String token) {
+
+        try {
+
+            if(token.startsWith("Bearer ")) {
+                token = token.substring(7);
+            }
+
+            Optional<Session> optionalSession = sessionRepo.findByToken(token);
+
+            if(optionalSession.isEmpty()){
+                return false;
+            }
+
+            JwtParser jwtParser = Jwts.parser()
+                    .verifyWith(secretKey)
+                    .build();
+
+            Claims claims = jwtParser.parseSignedClaims(token).getPayload();
+
+            Long expiryTime = ((Number) claims.get("exp")).longValue();
+            Long now = System.currentTimeMillis();
+
+            if(now > expiryTime){
+
+                Session session = optionalSession.get();
+                session.setState(State.INACTIVE);
+                sessionRepo.save(session);
+
+                return false;
+            }
+
+            return true;
+
+        } catch (Exception e) {
+            return false;
         }
     }
 }

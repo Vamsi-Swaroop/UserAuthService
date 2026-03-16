@@ -7,4 +7,5 @@ import dev.ismav.userauthservice.models.User;
 public interface IAuthService {
     User signup(String name, String email, String password);
     UserToken login(String email, String password);
+    public boolean validateToken(String token);
 }

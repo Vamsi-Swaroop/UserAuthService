@@ -3,6 +3,7 @@ package dev.ismav.userauthservice.controllers;
 import dev.ismav.userauthservice.DTOs.LoginRequestDTO;
 import dev.ismav.userauthservice.DTOs.SignUpRequestDTO;
 import dev.ismav.userauthservice.DTOs.UserDTO;
+import dev.ismav.userauthservice.DTOs.ValidateTokenDTO;
 import dev.ismav.userauthservice.models.User;
 import dev.ismav.userauthservice.pojos.UserToken;
 import dev.ismav.userauthservice.serivce.IAuthService;
@@ -78,6 +79,16 @@ public class AuthController {
         }catch(Exception e){
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
+    }
+
+    @PostMapping("/validateToken")
+    public ResponseEntity<String> validateToken(@RequestBody ValidateTokenDTO validateTokenDTO){
+        boolean result = authService.validateToken(validateTokenDTO.getToken());
+        if(!result)
+            return new ResponseEntity<>("Please login again",HttpStatus.FORBIDDEN);
+        else
+            return new ResponseEntity<>("Token is valid", HttpStatus.OK);
+
     }
 
 
