@@ -138,40 +138,20 @@ public class AuthService implements IAuthService{
     @Override
     public boolean validateToken(String token) {
 
-        try {
-
-            if(token.startsWith("Bearer ")) {
-                token = token.substring(7);
-            }
-
-            Optional<Session> optionalSession = sessionRepo.findByToken(token);
-
-            if(optionalSession.isEmpty()){
-                return false;
-            }
-
-            JwtParser jwtParser = Jwts.parser()
-                    .verifyWith(secretKey)
-                    .build();
-
-            Claims claims = jwtParser.parseSignedClaims(token).getPayload();
-
-            Long expiryTime = ((Number) claims.get("exp")).longValue();
-            Long now = System.currentTimeMillis();
-
-            if(now > expiryTime){
-
-                Session session = optionalSession.get();
-                session.setState(State.INACTIVE);
-                sessionRepo.save(session);
-
-                return false;
-            }
-
-            return true;
-
-        } catch (Exception e) {
+        Optional<Session> optionalSession = sessionRepo.findByToken(token);
+        if(optionalSession.isEmpty()){
             return false;
         }
+        JwtParser jwtParser = Jwts.parser().verifyWith(secretKey).build();
+        Claims claims = jwtParser.parseSignedClaims(token).getPayload();
+        Long expiryTime =(Long) claims.get("exp");
+        Long nowInMills = System.currentTimeMillis();
+        if(nowInMills> expiryTime){
+            Session session = optionalSession.get();
+            session.setState(State.INACTIVE);
+            sessionRepo.save(session);
+            return false;
+        }
+        return true;
     }
 }
